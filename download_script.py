@@ -1,6 +1,13 @@
 from playwright.sync_api import sync_playwright
 import os
 import time
+from dotenv import load_dotenv
+
+#load env variables
+load_dotenv()
+
+#access env variables
+password = os.environ.get('pwd')
 
 def run(playwright):
     # define the download dir
@@ -22,7 +29,7 @@ def run(playwright):
 
     # Fill in the username and password fields
     page.fill('input[placeholder="Email"]', 'dan')
-    page.fill('input[type="password"]', 'Skeejah#8440')
+    page.fill('input[type="password"]', password)
 
     # Click the login button
     page.click('button[type="submit"]')
