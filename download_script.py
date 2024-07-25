@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 #access env variables
+email = os.environ.get('email')
 password = os.environ.get('pwd')
 
 def run(playwright):
@@ -28,7 +29,7 @@ def run(playwright):
     page.goto('https://simworks.safetyinmotion.com/#/log-in')
 
     # Fill in the username and password fields
-    page.fill('input[placeholder="Email"]', 'dan')
+    page.fill('input[placeholder="Email"]', email)
     page.fill('input[type="password"]', password)
 
     # Click the login button
