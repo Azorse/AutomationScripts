@@ -1,17 +1,36 @@
 import pandas as pd
+from dotenv import load_dotenv
 from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 import os
 
-# Define file paths
-csv_file_path = '/Users/danschissler/my_playwright_project/downloads/observation.csv'
-excel_file_path = '/Users/danschissler/my_playwright_project/downloads/SIMworks_Data.xlsx'  
+# Load env variables
+load_dotenv()
+
+# Access env variables
+email = os.environ.get('email')
+password = os.environ.get('pwd')
+csv_file_path = os.environ.get('csv')
+excel_file_path = os.environ.get('excel')
 sheet_name = 'RawData'
+
+# Debugging statements
+print(f"Email: {email}")
+print(f"Password: {password}")
+print(f"CSV File Path: {csv_file_path}")
+print(f"Excel File Path: {excel_file_path}")
+
+# Ensure the paths are correct
+if not os.path.isfile(csv_file_path):
+    raise FileNotFoundError(f"CSV file not found: {csv_file_path}")
+
+if not os.path.isfile(excel_file_path):
+    raise FileNotFoundError(f"Excel file not found: {excel_file_path}")
 
 # Read the .csv file
 df_csv = pd.read_csv(csv_file_path)
 
-#LCheck to see if exists and valid
+# Check to see if exists and valid
 if os.path.exists(excel_file_path):
     try:
         book = load_workbook(excel_file_path)
@@ -22,22 +41,42 @@ else:
     print(f"Excel file does not exist at path: {excel_file_path}")
     exit(1)
 
-
-#Check if sheet exists
+# Check if sheet exists
 if sheet_name in book.sheetnames:
     sheet = book[sheet_name]
 else:
-    sheet=book.create_sheet(sheet_name)
+    sheet = book.create_sheet(sheet_name)
 
-#find the last row
-max_row = sheet.max_row
+# Find the first available empty row in a specific column (e.g., column A)
+def get_first_empty_row(sheet, column):
+    for row in range(1, sheet.max_row + 2):
+        if sheet[f'{column}{row}'].value is None:
+            return row
 
-#write the csv data
-for row in dataframe_to_rows(df_csv, index=False, header=(max_row == 1)):
-    sheet.append(row)
+# Get the first available empty row in column A
+first_empty_row = get_first_empty_row(sheet, 'A')
 
-#save file
+# Write the csv data starting from the first available empty row
+for row_idx, row in enumerate(dataframe_to_rows(df_csv, index=False, header=(first_empty_row == 1)), start=first_empty_row):
+    for col_idx, value in enumerate(row, start=1):
+        sheet.cell(row=row_idx, column=col_idx, value=value)
+
+# Columns to extend formulas
+formula_columns = ['N', 'O', 'P', 'Q', 'R']
+
+# Get the last row with data
+last_row_with_data = sheet.max_row
+
+# Extend formulas in specified columns
+for col in formula_columns:
+    formula = sheet[f'{col}{last_row_with_data}'].value  # Get the formula from the last row with data
+    if formula and formula.startswith('='):  # Ensure it's a formula
+        for row in range(first_empty_row, last_row_with_data + 1):
+            sheet[f'{col}{row}'] = formula.replace(f'{last_row_with_data}', f'{row}')
+
+# Save file
 book.save(excel_file_path)
 book.close()
 
 print(f"Contents of {csv_file_path} have been added to {excel_file_path} on the '{sheet_name}' sheet.")
+
